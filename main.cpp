@@ -1,3 +1,16 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/* 
+ * File:   main.cpp
+ * Author: sagg2
+ *
+ * Created on 24 de noviembre de 2024, 06:26 PM
+ */
+
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -337,7 +350,7 @@ Carta pool[232] =  {Carta("este no es un pokemon",CARTA_TIPO::POKEMON,ELEMENTO::
 
 int main(int argc, char const *argv[])
 {	
-	cout << "wsasdasdas"<< endl;
+	
 	srand(time(NULL));	
 	vector<vector<int>> poblacion(NIND);
 	//ingresar un basico
@@ -371,7 +384,11 @@ void muestraMejor(vector<vector<int>> poblacion){
     vector<int> aux = poblacion[mejor];
     sort(aux.begin(),aux.end());
     for(int i=0;i<poblacion[mejor].size();i++){
-        cout << aux[i] << "  "  << pool[aux[i]].nombre << endl;        
+        cout << left<<setw(5)<<aux[i] << "  "  << setw(15)<<pool[aux[i]].nombre;
+        if(pool[aux[i]].tipo_carta==POKEMON){
+            cout << setw(8)<<pool[aux[i]].fase;
+        }
+        cout<<endl; 
     }
     cout << endl << endl;
 }
@@ -389,7 +406,9 @@ bool compara(vector<int>a,vector<int>b){
 void generarPoblacion(vector<vector<int>> &poblacion){
     
     sort(poblacion.begin(),poblacion.end(),compara);
-    poblacion.erase(poblacion.begin()+NIND,poblacion.end());
+    if(poblacion.size()>NIND){
+        poblacion.erase(poblacion.begin()+NIND,poblacion.end());
+    }
     
 }
 
@@ -429,19 +448,62 @@ void agregaInicial(vector<vector<int>>& poblacion){
 
 }
 
-void generaPoblacionInicial(vector<vector<int>> &poblacion) {
-	
-	agregaInicial(poblacion);
+void imprimirVector(vector<int>imprimir){
+    for(int i=0; i<imprimir.size();i++){
+        cout<<setw(4)<<imprimir[i];
+    }
+    cout<<endl;
+}
 
-    for (int i = 0; i < NIND; ++i) { // Luego cambio :v
-		int verificacion[232]{};
+//void generaPoblacionInicial(vector<vector<int>> &poblacion) {
+//    
+//    agregaInicial(poblacion);
+//    int i=0;
+//    while (i < NIND) { // Luego cambio :v
+//        int verificacion[232]{};
+//        vector<int>vaux;
+//        int j=1;
+//        while (j < CANT_CARTAS_DECK) {
+//            int cartaCandidata = (rand() % TOTAL_CARTAS) + 1; 
+//            if(verificacion[cartaCandidata] < 2) {
+//                    verificacion[cartaCandidata]++;
+//                    vaux.push_back(cartaCandidata);
+//                    j++;
+//            }
+//        }
+//        if(!aberracion(vaux)){
+//            for(int j=0;j<vaux.size();j++){
+//                poblacion[i].push_back(vaux[j]);
+//            }
+//            imprimirVector(vaux);
+//            imprimirVector(poblacion[i]);
+//            i++;
+//        }
+//    }
+//    
+//}
+
+void generaPoblacionInicial(vector<vector<int>> &poblacion) {
+    agregaInicial(poblacion);
+    int i=0;
+    while (i < NIND){
+        int verificacion[232]{};
+        vector<int>vaux;
         for (int j = 1; j < CANT_CARTAS_DECK;) {
-			int cartaCandidata = (rand() % TOTAL_CARTAS) + 1; 
-			if(verificacion[cartaCandidata] < 2) {
-				verificacion[cartaCandidata]++;
-				poblacion[i][j] = cartaCandidata;
-				j++;
-			}
+            int cartaCandidata = (rand() % TOTAL_CARTAS) + 1; 
+            if(verificacion[cartaCandidata] < 2) {
+                    verificacion[cartaCandidata]++;
+                    vaux.push_back(cartaCandidata);
+                    j++;
+            }
+        }
+        if(!aberracion(vaux)){
+            for(int j=0;j<vaux.size();j++){
+                poblacion[i][j+1] = vaux[j];
+            }
+            imprimirVector(vaux);
+            imprimirVector(poblacion[i]);
+            i++;
         }
     }
 	
@@ -479,6 +541,10 @@ void calculasupervivencia(vector<vector<int>> &poblacion,
 // :v
 void cargaruleta(vector<int> &supervivencia,int *ruleta){
     int ind=0;
+    int cantInd=0;
+    for(int i=0;i<supervivencia.size();i++)
+        cantInd+=supervivencia[i];
+    cout<<"Cant Ind Ruleta "<<cantInd<<endl;
     for(int i=0;i<supervivencia.size();i++)
         for(int j=0;j<supervivencia[i];j++)
             ruleta[ind++]=i;
@@ -517,13 +583,14 @@ void mutacion(vector<vector<int>> &poblacion,vector<vector<int>> &padres){
 bool aberracion(vector<int>& crom){
     int arr[TOTAL_CARTAS]{};
 
-	for(int id : crom){
-		if(arr[id]>2) return true;
-		else arr[id]++;
-	}
+    for(int id : crom){
+            if(arr[id]>2) return true;
+            else arr[id]++;
+    }
 
-	if(lineasInconclusasCalcular(crom)>4) return true;
-
+    if(lineasInconclusasCalcular(crom)>4) return true;
+    if(cantTiposCalcular(crom).size()>3) return true;
+    
 	return false;
 
 }
@@ -592,10 +659,10 @@ int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia
                     for(int i = 0; i < evoluciones.size(); i++){ // Recorre evoluciones.
                         if(binarySearch(evoluciones[i], 0, mazo.size() - 1, mazo)){ // No se ha encontrado, rompe bucle.
                             if(!pool[evoluciones[i]].fase_final){
-								vector<int> evolucionesF2;
-                    			evolucionesF2 = evoluciones[i].sigEvo;
+                                        vector<int> evolucionesF2;
+                    			evolucionesF2 = pool[evoluciones[i]].sigEvo;
                                 for(int j = 0; j < evolucionesF2.size(); j++){
-                                    if(binarySearch(evolucionesF2.sigEvo[j], 0, mazo.size() - 1, mazo)){
+                                    if(binarySearch(evolucionesF2[j], 0, mazo.size() - 1, mazo)){
                                         encontrado=true;
                                         break;
                                     }
