@@ -24,7 +24,7 @@
 
 #define CANT_CARTAS_DECK 20
 #define TOTAL_CARTAS 231
-#define NITERACIONES 5
+#define NITERACIONES 100
 #define TSELECCION 0.5
 #define TMUTCON 0.5
 #define NIND 40
@@ -43,7 +43,7 @@ void calculasupervivencia(vector<vector<int>> &poblacion,
 void seleccion(vector<vector<int>> &padres,vector<vector<int>> &poblacion);
 double calculaFitness(vector<int>& mazo);
 int lineasInconclusasCalcular(vector<int> mazo);
-bool binarySearch(int num, int p, int r, vector<int> &array);
+int binarySearch(int num, int p, int r, vector<int> &array);
 vector<int> cantTiposCalcular(vector<int>& mazo);
 int evaluaAcciones(vector<int> &mano);
 double accionesPromedioCalcular(vector<int>& mazo);
@@ -54,7 +54,8 @@ bool compara(vector<int>a,vector<int>b);
 void muestraMejor(vector<vector<int>> poblacion);
 void mutacion(vector<vector<int>> &poblacion,vector<vector<int>> &padres);
 bool aberracion(vector<int>& crom);
-
+void muestraInfoDeck(vector<int> deck);
+void muestraDeck(vector<int> deck);
 	
 enum ELEMENTO{
 	PLANTA,
@@ -361,6 +362,7 @@ int main(int argc, char const *argv[])
 	muestraPoblacion(poblacion);
 	
 	for(int n = 0;n < NITERACIONES;n++){
+		cout << "entre" << endl;
 		vector<vector<int>> padres;
 		cout << "Generacion: " << n << endl;
 		seleccion(padres,poblacion);
@@ -371,7 +373,22 @@ int main(int argc, char const *argv[])
 		muestraMejor(poblacion);
 	} 
 
+	//vector<int> temp = {1,93,230,143,165,180,196,170,3,126,178,38,12,208,57,131,52,191,227,171};
+	//muestraInfoDeck(temp);
     return 0;
+}
+
+void muestraInfoDeck(vector<int> deck){
+	sort(deck.begin(),deck.end());
+
+	cout << "Fitness: " << calculaFitness(deck) << endl;
+	muestraDeck(deck);
+}
+
+void muestraDeck(vector<int> deck){
+	for(int n : deck){
+		cout << n << " " << pool[n].nombre << endl;
+	}
 }
 
 void muestraMejor(vector<vector<int>> poblacion){
@@ -383,13 +400,14 @@ void muestraMejor(vector<vector<int>> poblacion){
     cout << endl<<"La mejor solucion es:" << calculaFitness(poblacion[mejor])<<endl;
     vector<int> aux = poblacion[mejor];
     sort(aux.begin(),aux.end());
-    for(int i=0;i<poblacion[mejor].size();i++){
-        cout << left<<setw(5)<<aux[i] << "  "  << setw(15)<<pool[aux[i]].nombre;
-        if(pool[aux[i]].tipo_carta==POKEMON){
-            cout << setw(8)<<pool[aux[i]].fase;
-        }
-        cout<<endl; 
-    }
+    // for(int i=0;i<poblacion[mejor].size();i++){
+    //     cout << left<<setw(5)<<aux[i] << "  "  << setw(15)<<pool[aux[i]].nombre;
+    //     if(pool[aux[i]].tipo_carta==POKEMON){
+    //         cout << setw(8)<<pool[aux[i]].fase;
+    //     }
+    //     cout<<endl; 
+    // }
+	muestraInfoDeck(aux);
     cout << endl << endl;
 }
 
@@ -504,6 +522,7 @@ void generaPoblacionInicial(vector<vector<int>> &poblacion) {
             imprimirVector(vaux);
             imprimirVector(poblacion[i]);
             i++;
+			cout << i << endl;
         }
     }
 	
@@ -582,14 +601,13 @@ void mutacion(vector<vector<int>> &poblacion,vector<vector<int>> &padres){
 
 bool aberracion(vector<int>& crom){
     int arr[TOTAL_CARTAS]{};
-
     for(int id : crom){
             if(arr[id]>2) return true;
             else arr[id]++;
     }
 
-    if(lineasInconclusasCalcular(crom)>4) return true;
-    if(cantTiposCalcular(crom).size()>3) return true;
+    //if(lineasInconclusasCalcular(crom)>4) return true;
+    //if(cantTiposCalcular(crom).size()>3) return true;
     
 	return false;
 
@@ -601,23 +619,23 @@ vector<int> cantTiposCalcular(vector<int>& mazo){
 	for(int id: mazo){
 		if(!tipos.empty())sort(tipos.begin(), tipos.end());
 		if(pool[id].tipo_carta==CARTA_TIPO::POKEMON && (pool[id].elemento!=ELEMENTO::NORMAL || pool[id].elemento!=ELEMENTO::DRAGON)) {
-			if(!binarySearch(pool[id].elemento,0,tipos.size()-1,tipos))
+			if(binarySearch(pool[id].elemento,0,tipos.size()-1,tipos)==-1)
 				tipos.push_back(pool[id].elemento);
 		}
 	}
 	return tipos;
 }
 
-bool binarySearch(int num, int p, int r, vector<int> &array){
+int binarySearch(int num, int p, int r, vector<int> &array){
 	if(p <= r){ // Se puede buscar
 		int q = p + (r - p) / 2;;
-		if(num == array[q])return true;
+		if(num == array[q])return q;
 		else{
 			if(num <= array[q])return binarySearch(num, p, q - 1, array);
 			else return binarySearch(num, q + 1, r, array);
 		}
 	}
-	else return false; // Se sobrepasa
+	else return -1; // Se sobrepasa
 }
 
 //int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia 
@@ -645,39 +663,71 @@ bool binarySearch(int num, int p, int r, vector<int> &array){
 //	return lineasInconclusas;
 //}
 
+int buscaEvo(vector<int>& mazo, int actual){
 
-int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia 
-	sort(mazo.begin(),mazo.end());
-	int lineasInconclusas = 0;
-        
-	for(int id : mazo){
-            if(pool[id].tipo_carta == CARTA_TIPO::POKEMON){
-                if((pool[id].fase == BASICO) and !(pool[id].fase_final)){
-                    vector<int> evoluciones;
-                    evoluciones = pool[id].sigEvo;
-                    bool encontrado=false;
-                    for(int i = 0; i < evoluciones.size(); i++){ // Recorre evoluciones.
-                        if(binarySearch(evoluciones[i], 0, mazo.size() - 1, mazo)){ // No se ha encontrado, rompe bucle.
-                            if(!pool[evoluciones[i]].fase_final){
-                                        vector<int> evolucionesF2;
-                    			evolucionesF2 = pool[evoluciones[i]].sigEvo;
-                                for(int j = 0; j < evolucionesF2.size(); j++){
-                                    if(binarySearch(evolucionesF2[j], 0, mazo.size() - 1, mazo)){
-                                        encontrado=true;
-                                        break;
-                                    }
-                                }
-                            }else{
-                                encontrado=true;
-                                break;
-                            }
-                        }
-                    }
-                    if(!encontrado)lineasInconclusas++;
-                }
-            }
+	for(int n : pool[actual].sigEvo){
+		int temp = binarySearch(n,0,mazo.size(),mazo);
+		if(temp != -1) return temp;
+	}
+	return -1;
+}
+
+bool buscaLinea(vector<int>& mazo, int& actual){
+
+	while(1){
+		if(pool[actual].fase_final) return true;
+		int aux = buscaEvo(mazo,actual);
+		//cout << "aux: " << aux << endl;
+		if(aux == -1) return false;
+		actual = aux;
+		mazo.erase(mazo.begin()+aux);
 	}
 
+}
+
+int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia 
+	sort(mazo.begin(),mazo.end(),[](int a, int b) {return a > b;});
+	
+	int lineasInconclusas = 0;
+	//muestraDeck(mazo);
+	//cout <<"--------------------------" << endl;
+    int actual = mazo.back();
+	mazo.pop_back();
+
+	bool no_encontrado = false;
+
+	while(mazo.size()){
+		//cout << "->Actual: " << pool[actual].nombre << endl;
+		if(pool[actual].tipo_carta == CARTA_TIPO::POKEMON){
+			if(pool[actual].fase == FASE::BASICO){ //agregar indices de fosiles 
+				if(pool[actual].fase_final){
+					//cout << "-> Este pokemon no evoluciona" << endl;
+					actual = mazo.back();
+					mazo.pop_back();
+				}else{
+					if(!buscaLinea(mazo,actual)) {
+						//cout << "-> No encontre la linea completa." << endl;
+						actual = mazo.back();
+						mazo.pop_back();
+						lineasInconclusas++;
+					}
+				}
+			}else{
+				//cout << "-> Encontre primero una evolucion" << endl;
+				actual = mazo.back();
+				mazo.pop_back();
+				lineasInconclusas++;
+			}
+		}else{
+			//cout << "->Salto esta carta" << endl;
+			actual = mazo.back();
+			mazo.pop_back();
+		}
+
+		//muestraDeck(mazo);
+		//cout << "L:" << lineasInconclusas << endl;
+		//cout << "-----------------------------------" << endl;
+	}
 	return lineasInconclusas;
 }
 
@@ -744,7 +794,7 @@ double calculaSinergia(vector<int> mazo){
 			if(pool[id].sinergia.size()){
 				if(pool[id].sinergia[0]>0){
 					for(int idSinergia : pool[id].sinergia){
-						if(binarySearch(idSinergia,0,mazo.size()-1,mazo)) puntosSinergias++;
+						if(binarySearch(idSinergia,0,mazo.size()-1,mazo)!=-1) puntosSinergias++;
 					}
 				}else{
 					int tipo = -pool[id].sinergia[0];
@@ -752,7 +802,7 @@ double calculaSinergia(vector<int> mazo){
 						puntosSinergias++;
 					}else{
 						vector<int> tiposDelDeck = cantTiposCalcular(mazo);
-						if(binarySearch(tipo,0,mazo.size()-1,mazo)) puntosSinergias++;
+						if(binarySearch(tipo,0,mazo.size()-1,mazo)!=-1) puntosSinergias++;
 					}
 					
 				}
@@ -766,7 +816,7 @@ double calculaSinergia(vector<int> mazo){
 				if(pool[id].sinergia[0]>0){
 					int tempSinergia = 0;
 					for(int idSinergia : pool[id].sinergia){
-						if(binarySearch(idSinergia,0,mazo.size()-1,mazo)) tempSinergia++;
+						if(binarySearch(idSinergia,0,mazo.size()-1,mazo)!=-1) tempSinergia++;
 					}
 					if(tempSinergia) tempSinergia+=pool[id].tipo_entrenador;
 					puntosSinergias+=tempSinergia;
@@ -777,7 +827,7 @@ double calculaSinergia(vector<int> mazo){
 						puntosSinergias+=pool[id].tipo_entrenador;
 					}else{
 						vector<int> tiposDelDeck = cantTiposCalcular(mazo);
-						if(binarySearch(tipo,0,mazo.size()-1,mazo)) {
+						if(binarySearch(tipo,0,mazo.size()-1,mazo)!=-1) {
 							puntosSinergias++;
 							puntosSinergias+=pool[id].tipo_entrenador;
 						}
