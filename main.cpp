@@ -24,7 +24,7 @@
 
 #define CANT_CARTAS_DECK 20
 #define TOTAL_CARTAS 231
-#define NITERACIONES 5
+#define NITERACIONES 500
 #define TSELECCION 0.5
 #define TMUTCON 0.5
 #define NIND 40
@@ -366,19 +366,16 @@ int main(int argc, char const *argv[])
 	muestraPoblacion(poblacion);
 	
 	for(int n = 0;n < NITERACIONES;n++){
-		cout << "entre" << endl;
 		vector<vector<int>> padres;
-		cout << "Generacion: " << n << endl;
+		cout << "-> Generacion: " << n << endl;
 		seleccion(padres,poblacion);
 		
 		mutacion(poblacion,padres);
-		generarPoblacion(poblacion);
+		//generarPoblacion(poblacion);
 		muestraPoblacion(poblacion);
 		muestraMejor(poblacion);
 	} 
 
-	// vector<int> temp = {1,93,230,143,165,180,196,170,3,126,178,38,12,208,57,131,52,191,227,171};
-	// muestraInfoDeck(temp);
     return 0;
 }
 
@@ -523,10 +520,10 @@ void generaPoblacionInicial(vector<vector<int>> &poblacion) {
             for(int j=0;j<vaux.size();j++){
                 poblacion[i][j+1] = vaux[j];
             }
-            imprimirVector(vaux);
-            imprimirVector(poblacion[i]);
+            //imprimirVector(vaux);
+            //imprimirVector(poblacion[i]);
             i++;
-			cout << i << endl;
+			//cout << i << endl;
         }
     }
 	
@@ -574,7 +571,7 @@ void cargaruleta(vector<int> &supervivencia,int *ruleta){
 }
 
 void seleccion(vector<vector<int>> &padres,vector<vector<int>> &poblacion){
-	int ruleta[100]{-1};
+	int ruleta[1000]{-1};
 	vector<int>supervivencia;
     calculasupervivencia(poblacion,supervivencia);
     cargaruleta(supervivencia,ruleta);
@@ -683,10 +680,10 @@ int binarySearchAlt(int num, int p, int r, vector<int> &array){
 
 int buscaEvo(vector<int>& mazo, int actual){
 	//cout << "-> Estoy buscando a ";
-	for(int n : pool[actual].sigEvo)
-		cout << pool[n].nombre << " ";
-	cout << endl;
-	muestraDeck(mazo);
+	//for(int n : pool[actual].sigEvo)
+	//	cout << pool[n].nombre << " ";
+	//cout << endl;
+	//muestraDeck(mazo);
 
 	for(int n : pool[actual].sigEvo){
 		int temp = binarySearchAlt(n,0,mazo.size(),mazo);
@@ -760,7 +757,7 @@ int analizaLineas(vector<int> mazo,int& lineasIncompletas,int& lineasParciales, 
 	int actual = mazo.back();
 	mazo.pop_back();
 
-	while(mazo.size()){
+	while(mazo.empty()){
 		if(pool[actual].tipo_carta == CARTA_TIPO::POKEMON){
 			if(pool[actual].fase == FASE::BASICO){
 				//cout << "-> Actual: " << pool[actual].nombre << endl;
