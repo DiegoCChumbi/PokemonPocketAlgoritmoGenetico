@@ -24,7 +24,7 @@
 
 #define CANT_CARTAS_DECK 20
 #define TOTAL_CARTAS 231
-#define NITERACIONES 100
+#define NITERACIONES 5
 #define TSELECCION 0.5
 #define TMUTCON 0.5
 #define NIND 40
@@ -56,7 +56,10 @@ void mutacion(vector<vector<int>> &poblacion,vector<vector<int>> &padres);
 bool aberracion(vector<int>& crom);
 void muestraInfoDeck(vector<int> deck);
 void muestraDeck(vector<int> deck);
-	
+int analizaLineas(vector<int> mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas);
+void analizoLineaBasico(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas,int actual);
+void analizoLineaParcial(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales,int& actual);
+
 enum ELEMENTO{
 	PLANTA,
 	FUEGO,
@@ -358,6 +361,7 @@ int main(int argc, char const *argv[])
 	
 	//agregar el basico a cada individuo de la poblacion
 	//se escogeran 19 cartas aleatorias
+
 	generaPoblacionInicial(poblacion);
 	muestraPoblacion(poblacion);
 	
@@ -373,8 +377,8 @@ int main(int argc, char const *argv[])
 		muestraMejor(poblacion);
 	} 
 
-	//vector<int> temp = {1,93,230,143,165,180,196,170,3,126,178,38,12,208,57,131,52,191,227,171};
-	//muestraInfoDeck(temp);
+	// vector<int> temp = {1,93,230,143,165,180,196,170,3,126,178,38,12,208,57,131,52,191,227,171};
+	// muestraInfoDeck(temp);
     return 0;
 }
 
@@ -628,11 +632,25 @@ vector<int> cantTiposCalcular(vector<int>& mazo){
 
 int binarySearch(int num, int p, int r, vector<int> &array){
 	if(p <= r){ // Se puede buscar
-		int q = p + (r - p) / 2;;
+		int q = p + (r - p) / 2;
+		//cout << "Indide: " << q << endl;
 		if(num == array[q])return q;
 		else{
 			if(num <= array[q])return binarySearch(num, p, q - 1, array);
 			else return binarySearch(num, q + 1, r, array);
+		}
+	}
+	else return -1; // Se sobrepasa
+}
+
+int binarySearchAlt(int num, int p, int r, vector<int> &array){
+	if(p <= r){ // Se puede buscar
+		int q = p + (r - p) / 2;
+		//cout << "Indide: " << pool[array[q]].nombre <<" " <<q << endl;
+		if(num == array[q])return q;
+		else{
+			if(num > array[q])return binarySearchAlt(num, p, q - 1, array);
+			else return binarySearchAlt(num, q + 1, r, array);
 		}
 	}
 	else return -1; // Se sobrepasa
@@ -664,9 +682,14 @@ int binarySearch(int num, int p, int r, vector<int> &array){
 //}
 
 int buscaEvo(vector<int>& mazo, int actual){
+	//cout << "-> Estoy buscando a ";
+	for(int n : pool[actual].sigEvo)
+		cout << pool[n].nombre << " ";
+	cout << endl;
+	muestraDeck(mazo);
 
 	for(int n : pool[actual].sigEvo){
-		int temp = binarySearch(n,0,mazo.size(),mazo);
+		int temp = binarySearchAlt(n,0,mazo.size(),mazo);
 		if(temp != -1) return temp;
 	}
 	return -1;
@@ -729,6 +752,84 @@ int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia
 		//cout << "-----------------------------------" << endl;
 	}
 	return lineasInconclusas;
+}
+
+int analizaLineas(vector<int> mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas){
+	sort(mazo.begin(),mazo.end(),[](int a,int b){return a > b;});
+
+	int actual = mazo.back();
+	mazo.pop_back();
+
+	while(mazo.size()){
+		if(pool[actual].tipo_carta == CARTA_TIPO::POKEMON){
+			if(pool[actual].fase == FASE::BASICO){
+				//cout << "-> Actual: " << pool[actual].nombre << endl;
+				analizoLineaBasico(mazo,lineasIncompletas,lineasParciales,lineasCompletas,actual);
+			}else if(pool[actual].fase == FASE::FASE_1){
+				analizoLineaParcial(mazo,lineasIncompletas,lineasParciales,actual);
+			}else lineasIncompletas++;
+		}
+		actual = mazo.back();
+		mazo.pop_back();
+	}
+}
+
+void analizoLineaBasico(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas,int actual){
+	
+	if(pool[actual].fase_final){
+		lineasCompletas++;
+		return;
+	}
+
+	int fase1 = buscaEvo(mazo,actual);
+	if(fase1 != -1){
+		actual = mazo[fase1];
+		mazo.erase(mazo.begin()+fase1);
+		if(!pool[actual].fase_final){
+			int fase2 = buscaEvo(mazo,actual);
+			if(fase2 != -1){
+				mazo.erase(mazo.begin()+fase2);
+				lineasCompletas++;
+			}else{
+				lineasParciales++;
+			}
+		}else{
+			lineasCompletas++;
+			return;
+		}
+	}else{
+		//cout << "-> No encontre el fase 1 asi que busco el fase 2" << endl;
+		actual = pool[actual].sigEvo[0];// pasamos a la fase 1 para buscar si la fase 2 esta en el deck
+		//cout << "-> Busco la evo de " << pool[actual].nombre << endl;
+		if(!pool[actual].fase_final){ // si fase 1 es la fase final estamos ante una lineaIncompleta
+			int fase2 = buscaEvo(mazo,actual);
+			if(fase2!= -1){
+				//cout << "-> Encontre a : " << pool[mazo[fase2]].nombre << endl;
+				mazo.erase(mazo.begin()+fase2);
+				lineasParciales++;
+			}else{
+				//cout << "-> No lo encontre" << endl;
+				lineasIncompletas++;
+			}
+		}
+	}
+}
+
+void analizoLineaParcial(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales,int& actual){
+
+	if(pool[actual].fase_final){
+		lineasIncompletas++;
+		return;
+	}
+
+	int fase2 = buscaEvo(mazo,actual);
+	if(fase2 != -1){
+		mazo.erase(mazo.begin()+fase2);
+		lineasParciales++;
+	}else{
+		lineasIncompletas++;
+	}
+
 }
 
 double accionesPromedioCalcular(vector<int>& mazo){
@@ -844,11 +945,17 @@ double calculaSinergia(vector<int> mazo){
 
 double calculaFitness(vector<int>& mazo){
 	int cantTipos = cantTiposCalcular(mazo).size();
-	int lineasInconclusas = lineasInconclusasCalcular(mazo);
+	//int lineasInconclusas = lineasInconclusasCalcular(mazo);
 	double sinergia = calculaSinergia(mazo);
 	double accionesPromedio = accionesPromedioCalcular(mazo);
+	int lineasIncompletas = 0;
+	int lineasCompletas = 0;
+	int lineasParciales = 0;
+	analizaLineas(mazo,lineasIncompletas,lineasParciales,lineasCompletas);
 
-	cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << " L: "<< lineasInconclusas << " "<<endl; 
+	cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
+	cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
 
-	return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
+	//return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
+	return (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/(cantTipos+(lineasIncompletas+1));
 }
