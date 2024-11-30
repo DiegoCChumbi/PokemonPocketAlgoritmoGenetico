@@ -462,7 +462,7 @@ void calculaFitness(Individual &individuo){
     cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
 
     //return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
-    individuo.fitness = (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/(cantTipos+(lineasIncompletas+1));
+    individuo.fitness = (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/(2*cantTipos+(lineasIncompletas+1));
 }
 
 void evaluate_population(vector<Individual> &population){
