@@ -110,11 +110,12 @@ vector<int> cantTiposCalcular(vector<int>& mazo);
 double calculaSinergia(vector<int> mazo);
 double accionesPromedioCalcular(vector<int>& mazo);
 void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas);
-void analizoLineaParcial(vector<int>& mazo, int& lineasIncompletas, int& lineasParciales, int& actual) ;
-void analizoLineaBasico(vector<int>& mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual);
+void analizoLineaParcial(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& actual) ;
+void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual);
 int buscaEvo(vector<int>& mazo, int actual);
 void asignaMano(vector<int>& mazo, vector<int>& mano);
 int evaluaAcciones(vector<int> &mano);
+void generaHijo(vector<int>& chromo,Individual first, Individual second);
 
 // Datos:
 Carta pool[232] =  {Carta("este no es un pokemon",CARTA_TIPO::POKEMON,ELEMENTO::PLANTA,FASE::BASICO,false,{2},0,{}),
@@ -457,8 +458,8 @@ void calculaFitness(Individual &individuo){
     int lineasParciales = 0;
     analizaLineas(individuo.mazo,lineasIncompletas,lineasParciales,lineasCompletas);
 
-    // cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
-    // cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
+    cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
+    cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
 
     //return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
     individuo.fitness = (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/(cantTipos+(lineasIncompletas+1));
@@ -501,24 +502,40 @@ pair<Individual, Individual> crossover_uniform(Individual &first, Individual &se
     vector<int> chromo2(sizeChromo);
 
     // Se rellena todo el mazo.
-    for(int i = 0; i < sizeChromo; i++){
-        // Hay dos caminos
-        if(rand() % 2 == 0){
-            chromo1[i] = first.mazo[i];
-            chromo2[i] = second.mazo[i];
-        }
-        else{
-            chromo1[i] = second.mazo[i];
-            chromo2[i] = first.mazo[i];
-        }
-    }
+    
+	generaHijo(chromo1,first,second);
+	generaHijo(chromo2,first,second);
+
     child1.mazo = chromo1;
     child2.mazo = chromo2;
     return make_pair(child1, child2);
 }
 
+void generaHijo(vector<int>& chromo,Individual first, Individual second){
+	while(1){
+		for(int i = 0; i < chromo.size(); i++){
+			if(rand()%2 == 0) chromo[i] = first.mazo[i];
+			else chromo[i] = second.mazo[i];
+		}
+		if(!aberracion(chromo)) break;
+	}
+}
+
 bool functionSort(Individual &a, Individual &b){
     return a.fitness > b.fitness; // Orden descendente.
+}
+
+void imprimeDeck(Individual individuo){
+
+	
+
+	vector<int> aux = individuo.mazo;
+	sort(aux.begin(),aux.end());
+
+	for(int n : aux)
+		cout << n << " " << pool[n].nombre << endl;
+	
+	cout << endl;
 }
 
 vector<Individual> select_survivors(vector<Individual> &population, vector<Individual> &offspring_population){
@@ -593,6 +610,7 @@ void genetic_algorithm(vector<Individual> &population){
         best_fitness.push_back(best.fitness);
         if(i % 2 == 0){ // Imprime pares para que no sea tantas impresiones.
             cout << "Mejor individuo: " << best.fitness << "En la generacion " << i + 1 << endl;
+			imprimeDeck(best);
             // printChromo(best);
         }
         // Y listo :)
@@ -708,7 +726,7 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
     int actual = mazo.back();
     mazo.pop_back();
 
-    while (mazo.empty()) {
+    while (!mazo.empty()) {
         if (pool[actual].tipo_carta == CARTA_TIPO::POKEMON) {
             if (pool[actual].fase == FASE::BASICO) {
                 //cout << "-> Actual: " << pool[actual].nombre << endl;
@@ -720,9 +738,10 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
         actual = mazo.back();
         mazo.pop_back();
     }
+	cout << "->" << lineasIncompletas << lineasParciales << lineasCompletas << endl;
 }
 
-void analizoLineaBasico(vector<int>& mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual) {
+void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual) {
 
     if (pool[actual].fase_final) {
         lineasCompletas++;
@@ -763,7 +782,7 @@ void analizoLineaBasico(vector<int>& mazo, int& lineasIncompletas, int& lineasPa
     }
 }
 
-void analizoLineaParcial(vector<int>& mazo, int& lineasIncompletas, int& lineasParciales, int& actual) {
+void analizoLineaParcial(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& actual) {
 
     if (pool[actual].fase_final) {
         lineasIncompletas++;
