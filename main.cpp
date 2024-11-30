@@ -116,6 +116,7 @@ int buscaEvo(vector<int>& mazo, int actual);
 void asignaMano(vector<int>& mazo, vector<int>& mano);
 int evaluaAcciones(vector<int> &mano);
 void generaHijo(vector<int>& chromo,Individual first, Individual second);
+void mutacion(Individual& individuo);
 
 // Datos:
 Carta pool[232] =  {Carta("este no es un pokemon",CARTA_TIPO::POKEMON,ELEMENTO::PLANTA,FASE::BASICO,false,{2},0,{}),
@@ -365,7 +366,8 @@ int main(int argc, char const *argv[])
         vector<Individual> poblacion = generaPoblacionInicial();
 	// muestraPoblacion(poblacion);
         genetic_algorithm(poblacion);
-
+		//vector<int> temp = {1,24,47,48,104,112,128,129,150,150,150,155,178,207,209,223,226,228,230};
+		//cout << aberracion(temp) << endl;
 
     return 0;
 }
@@ -375,7 +377,7 @@ int main(int argc, char const *argv[])
 bool aberracion(vector<int>& crom) {
     int arr[TOTAL_CARTAS]{};
     for (int id : crom) {
-        if (arr[id] > 2) return true;
+        if (arr[id] >= 2) return true;
         else arr[id]++;
     }
 
@@ -585,12 +587,12 @@ void genetic_algorithm(vector<Individual> &population){
             ////// PENDIENTE: CHECAR QUE MUTACION UTILIZAR //////
             // MUTA EL PRIMER HIJO.
             if((double)rand() / RAND_MAX < MUTATION_RATE){ // Muta el primero
-                // mutation_flip(children.first); 
+                mutacion(children.first); 
             }
 
             // MUTA EL SEGUNDO HIJO.
             if((double)rand() / RAND_MAX < MUTATION_RATE){ // Muta el primero
-                // mutation_flip(children.second); /
+                mutacion(children.second);
             }
 
             // Ahora los hijos se guardan en la poblacion descendiente.
@@ -633,6 +635,20 @@ int binarySearch(int num, int p, int r, vector<int> &array){
         }
     }
     else return -1; // Se sobrepasa
+}
+
+void mutacion(Individual& individuo){
+	vector<int> copy = individuo.mazo;
+	vector<int> aux = copy;
+	while(1){
+
+		aux[rand()%CANT_CARTAS_DECK] = rand()%TOTAL_CARTAS;
+
+		if(!aberracion(aux)) break;
+		else aux = copy;
+	}
+
+	individuo.mazo = aux;
 }
 
 int binarySearchAlt(int num, int p, int r, vector<int> &array) {
@@ -723,10 +739,9 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
         return a > b;
     });
 
-    int actual = mazo.back();
-    mazo.pop_back();
-
     while (!mazo.empty()) {
+		int actual = mazo.back();
+    	mazo.pop_back();
         if (pool[actual].tipo_carta == CARTA_TIPO::POKEMON) {
             if (pool[actual].fase == FASE::BASICO) {
                 //cout << "-> Actual: " << pool[actual].nombre << endl;
@@ -735,8 +750,6 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
                 analizoLineaParcial(mazo, lineasIncompletas, lineasParciales, actual);
             } else lineasIncompletas++;
         }
-        actual = mazo.back();
-        mazo.pop_back();
     }
 	cout << "->" << lineasIncompletas << lineasParciales << lineasCompletas << endl;
 }
@@ -744,7 +757,7 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
 void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual) {
 
     if (pool[actual].fase_final) {
-        lineasCompletas++;
+        //lineasCompletas++;
         return;
     }
 
