@@ -416,7 +416,7 @@ vector<Individual> generaPoblacionInicial(){
                 vaux.push_back(cartaCandidata);
             j++;
             }
-        } // Se obtienen 19 cartas cantidatas.
+        }
         // Ahora tenemos un vaux con todas las candidatas posibles para el mazo.
         
         if(!aberracion(vaux)){ 
@@ -870,5 +870,3 @@ double accionesPromedioCalcular(vector<int>& mazo) {
     }
     return accionesTotales / 5.0;
 }
-
-

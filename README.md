@@ -8,7 +8,8 @@ Genetic Apex:
 - 215 Pokemon
 - 3 Items
 - 8 Partidarios
-Promo-A
+
+Promo-A:
 - 6 Items
 - 1 Partidario
 
