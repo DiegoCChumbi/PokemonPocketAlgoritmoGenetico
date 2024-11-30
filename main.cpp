@@ -1,4 +1,15 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 
+/* 
+ * File:   main.cpp
+ * Author: sagg2
+ *
+ * Created on 24 de noviembre de 2024, 06:26 PM
+ */
 
 
 #include <vector>
@@ -20,7 +31,7 @@
 #define NITERACIONES 1000
 #define TSELECCION 0.5
 #define MUTATION_RATE 0.5
-#define NIND 40
+#define NIND 200
 
 #define TOURNAMENT_SIZE 5
 
@@ -398,7 +409,7 @@ vector<Individual> generaPoblacionInicial(){
     vector<int> vaux;
     while (i < NIND){
         int verificacion[232]{0};
-        for (int j = 1; j < CANT_CARTAS_DECK;) {
+        for (int j = 0; j < CANT_CARTAS_DECK;) {
             cartaCandidata = (rand() % TOTAL_CARTAS); //// CAMBIO (antes era + 1)////
             if(cartaCandidata != 0 && verificacion[cartaCandidata] < 2) {
                 verificacion[cartaCandidata]++;
@@ -410,7 +421,7 @@ vector<Individual> generaPoblacionInicial(){
         
         if(!aberracion(vaux)){ 
             for(int j=0;j<vaux.size();j++){
-                poblacion[i].mazo[j+1] = vaux[j];
+                poblacion[i].mazo[j] = vaux[j];
             }
             vaux.clear(); // Elimina todos los elementos,
             vaux.shrink_to_fit(); // Se ajusta la memoria a 0 (solo por tema de optimizacion)
@@ -424,28 +435,12 @@ vector<Individual> generaPoblacionInicial(){
 
 void agregaInicial(vector<Individual> &poblacion){
 
-    int id;
     Individual individuo;
-    while(1){
-        cout << "Ingrese el identificador de un pokemon basico:";
-	//cin >> id;
-	id = 1; // Cambiar luego...
-	if(id<1 || id>232){
-            cout << endl << "El identificador no es valido" << endl;
-	}else{
-            if(pool[id].fase!=FASE::BASICO){
-            	cout << endl << "El identificador no es de un pokemon basico" << endl;
-            }else{
-            	cout << endl << "Su baraja se construirá usando a " << pool[id].nombre << endl;
-		for(int n = 0; n < NIND; n++){ 
-                    vector<int> deck_posible(CANT_CARTAS_DECK); 
-                    deck_posible[0] = id;
-                    individuo.mazo = deck_posible;
-                    poblacion[n] = individuo;
-                }
-                break;
-            }
-         }
+    
+    for(int n = 0; n < NIND; n++){ 
+        vector<int> deck_posible(CANT_CARTAS_DECK); 
+        individuo.mazo = deck_posible;
+        poblacion[n] = individuo;
     }
 }
 
@@ -460,11 +455,11 @@ void calculaFitness(Individual &individuo){
     int lineasParciales = 0;
     analizaLineas(individuo.mazo,lineasIncompletas,lineasParciales,lineasCompletas);
 
-    cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
-    cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
+  //  cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
+  //  cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
 
     //return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
-    individuo.fitness = (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/(2*cantTipos+(lineasIncompletas+1));
+    individuo.fitness = (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/((10*cantTipos)+(lineasIncompletas+1));
 }
 
 void evaluate_population(vector<Individual> &population){
@@ -751,7 +746,7 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
             } else lineasIncompletas++;
         }
     }
-	cout << "->" << lineasIncompletas << lineasParciales << lineasCompletas << endl;
+	//cout << "->" << lineasIncompletas << lineasParciales << lineasCompletas << endl;
 }
 
 void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual) {
