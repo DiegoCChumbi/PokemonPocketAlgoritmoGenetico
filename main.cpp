@@ -392,6 +392,27 @@ void muestraDeck(vector<int> deck){
 	}
 }
 
+void cambiar(int &a, int &b){
+	int aux;
+	aux = a;
+	a = b;
+	b = aux;
+}
+
+void ordenar(vector<int>&mazo, int izq, int der){
+	int limite;
+
+	if(izq>=der)return;
+	cambiar(mazo[izq], mazo[(izq+der)/2]);
+	limite=izq;
+	for(int i= izq+1; i<=der; i++)
+		if(mazo[izq]>mazo[i])        // condición de cambio, se ordena de mayor a menor
+			cambiar(mazo[++limite],mazo[i]);
+	cambiar(mazo[izq],mazo[limite]);
+	ordenar(mazo, izq, limite-1);
+	ordenar(mazo, limite+1,  der);
+}
+
 void muestraMejor(vector<vector<int>> poblacion){
     int mejor=0;
     for(int i=0;i<poblacion.size();i++)
