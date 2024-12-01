@@ -106,7 +106,7 @@ struct Individual{
 };
 
 vector<Individual> generaPoblacionInicial();
-void agregaInicial(vector<Individual> &poblacion);
+void reservaEspacio(vector<Individual> &poblacion);
 void genetic_algorithm(vector<Individual> &population);
 void evaluate_population(vector<Individual> &population);
 void calculaFitness(Individual &individuo);
@@ -403,7 +403,7 @@ bool aberracion(vector<int>& crom) {
 // A partir de 1 carta, se genera el resto de los individuos 
 vector<Individual> generaPoblacionInicial(){
     vector<Individual> poblacion(NIND);
-    agregaInicial(poblacion); 
+    reservaEspacio(poblacion); 
     int i=0;
     int cartaCandidata;
     vector<int> vaux;
@@ -433,7 +433,7 @@ vector<Individual> generaPoblacionInicial(){
     return poblacion;
 }
 
-void agregaInicial(vector<Individual> &poblacion){
+void reservaEspacio(vector<Individual> &poblacion){
 
     Individual individuo;
     
@@ -573,7 +573,7 @@ void genetic_algorithm(vector<Individual> &population){
         // Ahora procedemos con generar la nueva poblacion descendiente.
         vector<Individual> offspring_population;  // La nueva poblacion.
         for(pair<Individual, Individual> &parents: mating_pool){
-            // Kchan.
+            
             pair<Individual, Individual> children = crossover_uniform(parents.first, parents.second);
             // Ahora de los hijos, verificar si uno va a mutar o no.
 
@@ -634,18 +634,19 @@ int binarySearch(int num, int p, int r, vector<int> &array){
 
 void mutacion(Individual& individuo){
 	vector<int> copy = individuo.mazo;
-	vector<int> aux = copy;
+	vector<int> aux = copy;	// copia del mazo
 	while(1){
 
-		aux[rand()%CANT_CARTAS_DECK] = rand()%TOTAL_CARTAS;
+		aux[rand()%CANT_CARTAS_DECK] = rand()%TOTAL_CARTAS;	// se agrega una carta aleatoria del pool a mazo
 
 		if(!aberracion(aux)) break;
-		else aux = copy;
+		else aux = copy;	// se restaura el mazo original
 	}
 
 	individuo.mazo = aux;
 }
 
+// busqueda binaria cuando el vector esta de mayor a menor
 int binarySearchAlt(int num, int p, int r, vector<int> &array) {
     if (p <= r) { // Se puede buscar
         int q = p + (r - p) / 2;
@@ -658,6 +659,8 @@ int binarySearchAlt(int num, int p, int r, vector<int> &array) {
     } else return -1; // Se sobrepasa
 }
 
+//funcion que busca la cantidad de elementos en el deck
+//devuelve un arreglo con los elementos presentes en el mazo (fuego, agua, electrico, metal, etc)
 vector<int> cantTiposCalcular(vector<int>& mazo){
     vector<int> tipos;
     for(int id: mazo){
@@ -670,6 +673,7 @@ vector<int> cantTiposCalcular(vector<int>& mazo){
     return tipos;
 }
 
+//calcula la sinergia entre la cartas del mazo
 double calculaSinergia(vector<int> mazo) {
 
     sort(mazo.begin(), mazo.end());
@@ -677,25 +681,25 @@ double calculaSinergia(vector<int> mazo) {
     int puntosSinergias = 0;
     for (int id : mazo) {
         switch (pool[id].tipo_carta) {
-            case (CARTA_TIPO::POKEMON):
+            case (CARTA_TIPO::POKEMON):		// para los pokemon 
                 if (pool[id].sinergia.size()) {
-                    if (pool[id].sinergia[0] > 0) {
-                        for (int idSinergia : pool[id].sinergia) {
-                            if (binarySearch(idSinergia, 0, mazo.size() - 1, mazo) != -1) puntosSinergias++;
+                    if (pool[id].sinergia[0] > 0) {		//cuando en psinergia se tiene un numero negativo se interpreta como que el numero es un elemento y que este pokemon da un beneficio a todos los de ese elemento
+                        for (int idSinergia : pool[id].sinergia) { // cuando es un numero positivo se interpreta a que son cartas especificas con las que tiene sinergia
+                            if (binarySearch(idSinergia, 0, mazo.size() - 1, mazo) != -1) puntosSinergias++; // si estan esas cartas el maso paga puntos de sinergia
                         }
                     } else {
                         int tipo = -pool[id].sinergia[0];
                         if (tipo == ELEMENTO::NORMAL) {
                             puntosSinergias++;
                         } else {
-                            vector<int> tiposDelDeck = cantTiposCalcular(mazo);
+                            vector<int> tiposDelDeck = cantTiposCalcular(mazo);	//si el tipo al que este pokemon benefia esta presente en el deck, el maso gana puntos de sinergia
                             if (binarySearch(tipo, 0, mazo.size() - 1, mazo) != -1) puntosSinergias++;
                         }
 
                     }
                 }
                 break;
-            case (CARTA_TIPO::ITEM):
+            case (CARTA_TIPO::ITEM):	// las cartas de items dan sinergia dependiendo su tipo: por ejemplo las cartas para robar carta dan mas puntos de sinergia que las de soporte.
                 puntosSinergias += pool[id].tipo_entrenador;
                 break;
             case (CARTA_TIPO::PARTIDARIO):
@@ -716,7 +720,7 @@ double calculaSinergia(vector<int> mazo) {
                             vector<int> tiposDelDeck = cantTiposCalcular(mazo);
                             if (binarySearch(tipo, 0, mazo.size() - 1, mazo) != -1) {
                                 puntosSinergias++;
-                                puntosSinergias += pool[id].tipo_entrenador;
+                                puntosSinergias += pool[id].tipo_entrenador;	//al igual que los items los entrenadores que permiten robar carta dan mas sinergia, despues la de soporte y finalmente la de disrupcion
                             }
                         }
                     }
@@ -729,19 +733,21 @@ double calculaSinergia(vector<int> mazo) {
     return puntosSinergias;
 }
 
+// analizar lineas busca lineas evolutivas incompletas, parciales y completas
 void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas) {
     sort(mazo.begin(), mazo.end(), [](int a, int b) {
         return a > b;
-    });
+    });	// se ordena el mazo de mayor a menor
+	//NOTA: un pokemon basico siempre va a tener un menor indice que sus evoluciones
 
     while (!mazo.empty()) {
 		int actual = mazo.back();
     	mazo.pop_back();
-        if (pool[actual].tipo_carta == CARTA_TIPO::POKEMON) {
-            if (pool[actual].fase == FASE::BASICO) {
+        if (pool[actual].tipo_carta == CARTA_TIPO::POKEMON) {	
+            if (pool[actual].fase == FASE::BASICO) {	// si nos encontramos con un basico la linea puede estar completa , incompleta o parcial
                 //cout << "-> Actual: " << pool[actual].nombre << endl;
                 analizoLineaBasico(mazo, lineasIncompletas, lineasParciales, lineasCompletas, actual);
-            } else if (pool[actual].fase == FASE::FASE_1) {
+            } else if (pool[actual].fase == FASE::FASE_1) {	// si nos encontramos con un fase 1 la linea puede estar incompleta o parcial.
                 analizoLineaParcial(mazo, lineasIncompletas, lineasParciales, actual);
             } else lineasIncompletas++;
         }
@@ -752,11 +758,10 @@ void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciale
 void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual) {
 
     if (pool[actual].fase_final) {
-        //lineasCompletas++;
         return;
     }
-
-    int fase1 = buscaEvo(mazo, actual);
+	// aqui se evalua si la linea, empezando desde el pokemon basico, está completa, incompleta o parcial en el deck
+    int fase1 = buscaEvo(mazo, actual);		
     if (fase1 != -1) {
         actual = mazo[fase1];
         mazo.erase(mazo.begin() + fase1);
@@ -796,7 +801,7 @@ void analizoLineaParcial(vector<int> mazo, int& lineasIncompletas, int& lineasPa
         lineasIncompletas++;
         return;
     }
-
+	// aca se verifica si la linea empezando desde el fase 1 esta incompleta o parcial.
     int fase2 = buscaEvo(mazo, actual);
     if (fase2 != -1) {
         mazo.erase(mazo.begin() + fase2);
@@ -807,6 +812,7 @@ void analizoLineaParcial(vector<int> mazo, int& lineasIncompletas, int& lineasPa
 
 }
 
+//busca una evolucion de una carta en el mazo
 int buscaEvo(vector<int>& mazo, int actual) {
     //cout << "-> Estoy buscando a ";
     //for(int n : pool[actual].sigEvo)
@@ -821,6 +827,7 @@ int buscaEvo(vector<int>& mazo, int actual) {
     return -1;
 }
 
+// asigna una mano aleatoria de 5 cartas de un deck
 void asignaMano(vector<int>& mazo, vector<int>& mano) {
     vector<bool> usado(mazo.size(), false);
     int randInd;
@@ -833,6 +840,10 @@ void asignaMano(vector<int>& mazo, vector<int>& mano) {
     }
 }
 
+//se evalua cuantas acciones se puede ejecutar con una mano de 5 cartas aleatorias de un deck
+//se pueden poner hasta un maximo de 4 pokemon basicos
+//se puede jugar solo una carta de partidario
+//se pueden jugar todas las cartas de objeto que se tengan
 int evaluaAcciones(vector<int> &mano) {
 
     int pokes_basicos = 0;
@@ -861,6 +872,7 @@ int evaluaAcciones(vector<int> &mano) {
     return pokes_basicos + items + partidarios;
 }
 
+//a partir de 5 manos de 5 cartas, halla el promedio de acciones que se pueden jugar
 double accionesPromedioCalcular(vector<int>& mazo) {
     double accionesTotales = 0;
     for (int n = 0; n < 5; n++) {
