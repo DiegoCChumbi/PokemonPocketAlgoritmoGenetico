@@ -11,6 +11,7 @@
  * Created on 24 de noviembre de 2024, 06:26 PM
  */
 
+
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -22,43 +23,23 @@
 #include <algorithm>
 #include <map>
 
+
+// Parametros
+
 #define CANT_CARTAS_DECK 20
-#define TOTAL_CARTAS 231
-#define NITERACIONES 500
+#define TOTAL_CARTAS 232
+#define NITERACIONES 1000
 #define TSELECCION 0.5
-#define TMUTCON 0.5
-#define NIND 40
+#define MUTATION_RATE 0.5
+#define NIND 200
+
+#define TOURNAMENT_SIZE 5
 
 #define Prom_acciones 2
 
 using namespace std;
 
-// Headers, luego elimino :v
-void generaPoblacionInicial(vector<vector<int>> &poblacion);
-void muestraPoblacion(vector<vector<int>> &poblacion);
-void agregaInicial(vector<vector<int>>& poblacion);
-void cargaruleta(vector<int> &supervivencia,int *ruleta);
-void calculasupervivencia(vector<vector<int>> &poblacion,
-    vector<int> &supervivencia);
-void seleccion(vector<vector<int>> &padres,vector<vector<int>> &poblacion);
-double calculaFitness(vector<int>& mazo);
-int lineasInconclusasCalcular(vector<int> mazo);
-int binarySearch(int num, int p, int r, vector<int> &array);
-vector<int> cantTiposCalcular(vector<int>& mazo);
-int evaluaAcciones(vector<int> &mano);
-double accionesPromedioCalcular(vector<int>& mazo);
-void asignaMano(vector<int>& mazo,vector<int>& mano);
-int compacta(vector<int>cromo);
-void generarPoblacion(vector<vector<int>> &poblacion);
-bool compara(vector<int>a,vector<int>b);
-void muestraMejor(vector<vector<int>> poblacion);
-void mutacion(vector<vector<int>> &poblacion,vector<vector<int>> &padres);
-bool aberracion(vector<int>& crom);
-void muestraInfoDeck(vector<int> deck);
-void muestraDeck(vector<int> deck);
-int analizaLineas(vector<int> mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas);
-void analizoLineaBasico(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas,int actual);
-void analizoLineaParcial(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales,int& actual);
+
 
 enum ELEMENTO{
 	PLANTA,
@@ -93,30 +74,62 @@ enum TIPO_ENTRENADOR{
 
 typedef struct Carta{
     //general
-	string nombre;
+    string nombre;
 	
     int tipo_carta;     //CARTA_TIPO
     int elemento;       //ELEMENTO 
     
     //pokemon
-	int fase;
-	bool fase_final; // para pokemon
+    int fase;
+    bool fase_final; // para pokemon
     vector<int> sigEvo;
 
-	//partidario y objeto
-	int tipo_entrenador; //TIPO_ENTRENADOR
+    //partidario y objeto
+    int tipo_entrenador; //TIPO_ENTRENADOR
 
     vector<int> sinergia;
 
-	Carta(){};
+    Carta(){};
 
-	Carta(string _nombre, int _tipo_carta, int _elemento,
+    Carta(string _nombre, int _tipo_carta, int _elemento,
           int _fase = 0, bool _fase_final = false, vector<int> _sigEvo = {},
           int _tipo_entrenador = 0, vector<int> _sinergia = {})
         : nombre(_nombre), tipo_carta(_tipo_carta), elemento(_elemento),
           fase(_fase), fase_final(_fase_final), sigEvo(_sigEvo),
           tipo_entrenador(_tipo_entrenador), sinergia(_sinergia) {}
 } Carta;
+
+
+struct Individual{
+    vector<int> mazo;
+    double fitness; 
+};
+
+vector<Individual> generaPoblacionInicial();
+void reservaEspacio(vector<Individual> &poblacion);
+void genetic_algorithm(vector<Individual> &population);
+void evaluate_population(vector<Individual> &population);
+void calculaFitness(Individual &individuo);
+Individual tournament_selection(vector<Individual> &population);
+Individual bestInd(vector<Individual> &population);
+pair<Individual, Individual> crossover_uniform(Individual &first, Individual &second);
+vector<Individual> select_survivors(vector<Individual> &population, vector<Individual> &offspring_population);
+bool functionSort(Individual &a, Individual &b);
+bool aberracion(vector<int>& crom);
+
+vector<int> cantTiposCalcular(vector<int>& mazo);
+double calculaSinergia(vector<int> mazo);
+double accionesPromedioCalcular(vector<int>& mazo);
+void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas);
+void analizoLineaParcial(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& actual) ;
+void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual);
+int buscaEvo(vector<int>& mazo, int actual);
+void asignaMano(vector<int>& mazo, vector<int>& mano);
+int evaluaAcciones(vector<int> &mano);
+void generaHijo(vector<int>& chromo,Individual first, Individual second);
+void mutacion(Individual& individuo);
+
+// Datos:
 Carta pool[232] =  {Carta("este no es un pokemon",CARTA_TIPO::POKEMON,ELEMENTO::PLANTA,FASE::BASICO,false,{2},0,{}),
 					Carta("Bulbasaur",CARTA_TIPO::POKEMON,ELEMENTO::PLANTA,FASE::BASICO,false,{2},0,{}),
 					Carta("Ivysaur",CARTA_TIPO::POKEMON,ELEMENTO::PLANTA,FASE::FASE_1,false,{3,4},0,{}),
@@ -349,631 +362,523 @@ Carta pool[232] =  {Carta("este no es un pokemon",CARTA_TIPO::POKEMON,ELEMENTO::
 					Carta("Pokedex",CARTA_TIPO::ITEM,ELEMENTO::NORMAL,FASE::BASICO,false,{},TIPO_ENTRENADOR::SOPORTE,{}),
 					Carta("Poke Ball",CARTA_TIPO::ITEM,ELEMENTO::NORMAL,FASE::BASICO,false,{},TIPO_ENTRENADOR::MOTOR_ROBO,{}),
 					Carta("Tarjeta Roja",CARTA_TIPO::ITEM,ELEMENTO::NORMAL,FASE::BASICO,false,{},TIPO_ENTRENADOR::DISRUPCION,{})
-					};
+					}; 
 
 
 int main(int argc, char const *argv[])
 {	
 	
-	srand(time(NULL));	
-	vector<vector<int>> poblacion(NIND);
+	srand(time(0));	
 	//ingresar un basico
 	
 	//agregar el basico a cada individuo de la poblacion
 	//se escogeran 19 cartas aleatorias
 
-	generaPoblacionInicial(poblacion);
-	muestraPoblacion(poblacion);
-	
-	for(int n = 0;n < NITERACIONES;n++){
-		vector<vector<int>> padres;
-		cout << "-> Generacion: " << n << endl;
-		seleccion(padres,poblacion);
-		
-		mutacion(poblacion,padres);
-		//generarPoblacion(poblacion);
-		muestraPoblacion(poblacion);
-		muestraMejor(poblacion);
-	} 
+        vector<Individual> poblacion = generaPoblacionInicial();
+	// muestraPoblacion(poblacion);
+        genetic_algorithm(poblacion);
+		//vector<int> temp = {1,24,47,48,104,112,128,129,150,150,150,155,178,207,209,223,226,228,230};
+		//cout << aberracion(temp) << endl;
 
     return 0;
 }
 
-void muestraInfoDeck(vector<int> deck){
-	sort(deck.begin(),deck.end());
+// FUNCIONES GENETICOS:
 
-	cout << "Fitness: " << calculaFitness(deck) << endl;
-	muestraDeck(deck);
-}
-
-void muestraDeck(vector<int> deck){
-	for(int n : deck){
-		cout << n << " " << pool[n].nombre << endl;
-	}
-}
-
-void cambiar(int &a, int &b){
-	int aux;
-	aux = a;
-	a = b;
-	b = aux;
-}
-
-void ordenar(vector<int>&mazo, int izq, int der){
-	int limite;
-
-	if(izq>=der)return;
-	cambiar(mazo[izq], mazo[(izq+der)/2]);
-	limite=izq;
-	for(int i= izq+1; i<=der; i++)
-		if(mazo[izq]>mazo[i])        // condición de cambio, se ordena de mayor a menor
-			cambiar(mazo[++limite],mazo[i]);
-	cambiar(mazo[izq],mazo[limite]);
-	ordenar(mazo, izq, limite-1);
-	ordenar(mazo, limite+1,  der);
-}
-
-void muestraMejor(vector<vector<int>> poblacion){
-    int mejor=0;
-    for(int i=0;i<poblacion.size();i++)
-        if(calculaFitness(poblacion[mejor])<calculaFitness(poblacion[i]))
-            mejor=i;
-    
-    cout << endl<<"La mejor solucion es:" << calculaFitness(poblacion[mejor])<<endl;
-    vector<int> aux = poblacion[mejor];
-    sort(aux.begin(),aux.end());
-    // for(int i=0;i<poblacion[mejor].size();i++){
-    //     cout << left<<setw(5)<<aux[i] << "  "  << setw(15)<<pool[aux[i]].nombre;
-    //     if(pool[aux[i]].tipo_carta==POKEMON){
-    //         cout << setw(8)<<pool[aux[i]].fase;
-    //     }
-    //     cout<<endl; 
-    // }
-	muestraInfoDeck(aux);
-    cout << endl << endl;
-}
-
-bool compara(vector<int>a,vector<int>b){
-    int suma=0,sumb=0;
-   
-    for(int i=0;i<a.size();i++)
-        suma+=calculaFitness(a);
-    for(int i=0;i<b.size();i++)
-        sumb+=calculaFitness(b);
-    return suma>sumb;
-}
-
-void generarPoblacion(vector<vector<int>> &poblacion){
-    
-    sort(poblacion.begin(),poblacion.end(),compara);
-    if(poblacion.size()>NIND){
-        poblacion.erase(poblacion.begin()+NIND,poblacion.end());
-    }
-    
-}
-
-int compacta(vector<int>cromo){
-    int num=0;
-    for(int i=0;i<cromo.size();i++)
-        num+=pow(2,i)*cromo[i];
-    
-    return num;  
-}
-
-
-void agregaInicial(vector<vector<int>>& poblacion){
-
-	int id;
-	while(1){
-		cout << "Ingrese el identificador de un pokemon basico:";
-		//cin >> id;
-		id = 1;
-		if(id<1 || id>232){
-			cout << endl << "El identificador no es valido" << endl;
-		}else{
-			if(pool[id].fase!=FASE::BASICO){
-				cout << endl << "El identificador no es de un pokemon basico" << endl;
-			}else{
-				cout << endl << "Su baraja se construirá usando a " << pool[id].nombre << endl;
-				for(int n = 0; n < NIND; n++){ 
-					vector<int> deck_posible(CANT_CARTAS_DECK); 
-					deck_posible[0] = id;
-					poblacion[n] = deck_posible;
-				}
-				break;
-			}
-		}
-	}
-	cout << "sali" << endl;
-
-}
-
-void imprimirVector(vector<int>imprimir){
-    for(int i=0; i<imprimir.size();i++){
-        cout<<setw(4)<<imprimir[i];
-    }
-    cout<<endl;
-}
-
-//void generaPoblacionInicial(vector<vector<int>> &poblacion) {
-//    
-//    agregaInicial(poblacion);
-//    int i=0;
-//    while (i < NIND) { // Luego cambio :v
-//        int verificacion[232]{};
-//        vector<int>vaux;
-//        int j=1;
-//        while (j < CANT_CARTAS_DECK) {
-//            int cartaCandidata = (rand() % TOTAL_CARTAS) + 1; 
-//            if(verificacion[cartaCandidata] < 2) {
-//                    verificacion[cartaCandidata]++;
-//                    vaux.push_back(cartaCandidata);
-//                    j++;
-//            }
-//        }
-//        if(!aberracion(vaux)){
-//            for(int j=0;j<vaux.size();j++){
-//                poblacion[i].push_back(vaux[j]);
-//            }
-//            imprimirVector(vaux);
-//            imprimirVector(poblacion[i]);
-//            i++;
-//        }
-//    }
-//    
-//}
-
-void generaPoblacionInicial(vector<vector<int>> &poblacion) {
-    agregaInicial(poblacion);
-    int i=0;
-    while (i < NIND){
-        int verificacion[232]{};
-        vector<int>vaux;
-        for (int j = 1; j < CANT_CARTAS_DECK;) {
-            int cartaCandidata = (rand() % TOTAL_CARTAS) + 1; 
-            if(verificacion[cartaCandidata] < 2) {
-                    verificacion[cartaCandidata]++;
-                    vaux.push_back(cartaCandidata);
-                    j++;
-            }
-        }
-        if(!aberracion(vaux)){
-            for(int j=0;j<vaux.size();j++){
-                poblacion[i][j+1] = vaux[j];
-            }
-            //imprimirVector(vaux);
-            //imprimirVector(poblacion[i]);
-            i++;
-			//cout << i << endl;
-        }
-    }
-	
-}
-
-void muestraPoblacion(vector<vector<int>> &poblacion){
-	for(int i = 0; i < NIND; i++){
-		cout << "Poblacion: " << i + 1 << endl;
-		for(int j = 0; j < CANT_CARTAS_DECK; j++){
-			cout << poblacion[i][j] << " ";
-		}
-		cout << " "  << calculaFitness(poblacion[i]);
-		cout << endl;
-	}
-	cout << endl;
-}
-
-// 1 2 3 4 5
-/*=> 0 0 1 1 2 => Combinación
-int arreglo[20] = {49, 50, 97, 11, 50, 160, 71, 50, 9, 170, 56, 199, 29, 48, 52, 158, 37, 142, 168, 1}; */
-
-void calculasupervivencia(vector<vector<int>> &poblacion,
-    vector<int> &supervivencia){
-    int suma=0;
-    
-    for(int i=0;i<poblacion.size();i++)
-        suma+=calculaFitness(poblacion[i]);
-    for(int i=0;i<poblacion.size();i++){
-        int fit= round(100*(double)calculaFitness(poblacion[i])/suma);
-        supervivencia.push_back(fit);
-    }
-
-}
-
-// :v
-void cargaruleta(vector<int> &supervivencia,int *ruleta){
-    int ind=0;
-    int cantInd=0;
-    for(int i=0;i<supervivencia.size();i++)
-        cantInd+=supervivencia[i];
-    cout<<"Cant Ind Ruleta "<<cantInd<<endl;
-    for(int i=0;i<supervivencia.size();i++)
-        for(int j=0;j<supervivencia[i];j++)
-            ruleta[ind++]=i;
-}
-
-void seleccion(vector<vector<int>> &padres,vector<vector<int>> &poblacion){
-	int ruleta[1000]{-1};
-	vector<int>supervivencia;
-    calculasupervivencia(poblacion,supervivencia);
-    cargaruleta(supervivencia,ruleta);
-    int nseleccionados= poblacion.size()*TSELECCION; // Parámetro de torneo.        
-    for(int i=0;i<nseleccionados;i++){
-        int ind=rand()%100;
-        if(ruleta[ind]>-1)
-            padres.push_back(poblacion[ruleta[ind]]);
-            
-    } 
-} 
-
-
-void mutacion(vector<vector<int>> &poblacion,vector<vector<int>> &padres){
-    int cont=0;
-    int nmuta=round(padres[0].size()*TMUTCON);
-    for(int i=0;i<padres.size();i++){
-        while(cont<nmuta){
-            int ind=rand()%padres[0].size();
-        	padres[i][ind]=rand() % TOTAL_CARTAS + 1;
-            
-            cont++;
-        }
-        if(!aberracion(padres[i]))
-            poblacion.push_back(padres[i]);     
-    }
-}
-
-bool aberracion(vector<int>& crom){
+bool aberracion(vector<int>& crom) {
     int arr[TOTAL_CARTAS]{};
-    for(int id : crom){
-            if(arr[id]>2) return true;
-            else arr[id]++;
+    for (int id : crom) {
+        if (arr[id] >= 2) return true;
+        else arr[id]++;
     }
 
     //if(lineasInconclusasCalcular(crom)>4) return true;
     //if(cantTiposCalcular(crom).size()>3) return true;
+
+    return false;
+
+}
+
+
+// A partir de 1 carta, se genera el resto de los individuos 
+vector<Individual> generaPoblacionInicial(){
+    vector<Individual> poblacion(NIND);
+    reservaEspacio(poblacion); 
+    int i=0;
+    int cartaCandidata;
+    vector<int> vaux;
+    while (i < NIND){
+        int verificacion[232]{0};
+        for (int j = 0; j < CANT_CARTAS_DECK;) {
+            cartaCandidata = (rand() % TOTAL_CARTAS); //// CAMBIO (antes era + 1)////
+            if(cartaCandidata != 0 && verificacion[cartaCandidata] < 2) {
+                verificacion[cartaCandidata]++;
+                vaux.push_back(cartaCandidata);
+            j++;
+            }
+        }
+        // Ahora tenemos un vaux con todas las candidatas posibles para el mazo.
+        
+        if(!aberracion(vaux)){ 
+            for(int j=0;j<vaux.size();j++){
+                poblacion[i].mazo[j] = vaux[j];
+            }
+            vaux.clear(); // Elimina todos los elementos,
+            vaux.shrink_to_fit(); // Se ajusta la memoria a 0 (solo por tema de optimizacion)
+            //imprimirVector(vaux);
+            //imprimirVector(poblacion[i]);
+            i++;
+        }
+    }
+    return poblacion;
+}
+
+void reservaEspacio(vector<Individual> &poblacion){
+
+    Individual individuo;
     
-	return false;
-
+    for(int n = 0; n < NIND; n++){ 
+        vector<int> deck_posible(CANT_CARTAS_DECK); 
+        individuo.mazo = deck_posible;
+        poblacion[n] = individuo;
+    }
 }
 
 
-vector<int> cantTiposCalcular(vector<int>& mazo){
-	vector<int> tipos;
-	for(int id: mazo){
-		if(!tipos.empty())sort(tipos.begin(), tipos.end());
-		if(pool[id].tipo_carta==CARTA_TIPO::POKEMON && (pool[id].elemento!=ELEMENTO::NORMAL || pool[id].elemento!=ELEMENTO::DRAGON)) {
-			if(binarySearch(pool[id].elemento,0,tipos.size()-1,tipos)==-1)
-				tipos.push_back(pool[id].elemento);
+void calculaFitness(Individual &individuo){
+    int cantTipos = cantTiposCalcular(individuo.mazo).size();
+    //int lineasInconclusas = lineasInconclusasCalcular(mazo);
+    double sinergia = calculaSinergia(individuo.mazo);
+    double accionesPromedio = accionesPromedioCalcular(individuo.mazo);
+    int lineasIncompletas = 0;
+    int lineasCompletas = 0;
+    int lineasParciales = 0;
+    analizaLineas(individuo.mazo,lineasIncompletas,lineasParciales,lineasCompletas);
+
+  //  cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
+  //  cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
+
+    //return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
+    individuo.fitness = (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/((10*cantTipos)+(lineasIncompletas+1));
+}
+
+void evaluate_population(vector<Individual> &population){
+    // Importante passarlo como referencia, de no ser asi, el sistema copiara el elemento y cualquier modificacion no se reflejara en el original.
+    for(Individual &ind : population){ // Se calcula el fitness de cada individuo
+        calculaFitness(ind); // Se asigna.
+    } 
+}
+
+Individual bestInd(vector<Individual> &population){
+    // Toda la poblacion ya cuenta con un fitness.
+    int maxInd = INT_MIN;
+    Individual bestInd;
+    for(Individual &ind: population){
+        if(maxInd < ind.fitness){maxInd = ind.fitness, bestInd = ind;};
+    }
+    return bestInd;
+}
+
+Individual tournament_selection(vector<Individual> &population){
+    // Crearemos un vector, seleccionamos los posibles candidatos.
+    vector<Individual> tournament;
+    for(int i = 0; i < TOURNAMENT_SIZE; i++){
+        tournament.push_back(population[rand() % population.size()]);
+    }
+    // Ahora de estos, devolvemos el mejor individuo (de los aleatorios que hemos seleccionado)
+    return bestInd(tournament);
+}
+
+pair<Individual, Individual> crossover_uniform(Individual &first, Individual &second){
+    // Crearemos dos hijos.
+    int sizeChromo = first.mazo.size();
+    Individual child1, child2;
+    
+    // Ahora los mazos de cada uno
+    vector<int> chromo1(sizeChromo);
+    vector<int> chromo2(sizeChromo);
+
+    // Se rellena todo el mazo.
+    
+	generaHijo(chromo1,first,second);
+	generaHijo(chromo2,first,second);
+
+    child1.mazo = chromo1;
+    child2.mazo = chromo2;
+    return make_pair(child1, child2);
+}
+
+void generaHijo(vector<int>& chromo,Individual first, Individual second){
+	while(1){
+		for(int i = 0; i < chromo.size(); i++){
+			if(rand()%2 == 0) chromo[i] = first.mazo[i];
+			else chromo[i] = second.mazo[i];
 		}
+		if(!aberracion(chromo)) break;
 	}
-	return tipos;
 }
+
+bool functionSort(Individual &a, Individual &b){
+    return a.fitness > b.fitness; // Orden descendente.
+}
+
+void imprimeDeck(Individual individuo){
+
+	
+
+	vector<int> aux = individuo.mazo;
+	sort(aux.begin(),aux.end());
+
+	for(int n : aux)
+		cout << n << " " << pool[n].nombre << endl;
+	
+	cout << endl;
+}
+
+vector<Individual> select_survivors(vector<Individual> &population, vector<Individual> &offspring_population){
+    // Seleccion elitista.
+    // Tendremos dos poblaciones con un gran numero.
+    // Ahora, debemos de ordenarlo en base a su fitness.
+    vector<Individual> newPopulation;
+    int numPopulation = population.size();
+    for(Individual &ind : offspring_population)population.push_back(ind);
+    sort(population.begin(), population.end(), functionSort);
+    // Ahora seleccionamos.
+    for(int i = 0; i < numPopulation; i++){
+        newPopulation.push_back(population[i]);
+    } // Se seleccionan los mejores
+    return newPopulation;
+}
+
+void genetic_algorithm(vector<Individual> &population){
+    // Procedemos con evaluar la poblacion inicial.
+    evaluate_population(population); // Siempre el evaluate_population lo que hara es calcular el fitness.
+    // Hecho esto, guardaremos el mejor fitness en un vector. Intuitivamente, este vector tendra el tamanio de todas las generaciones.
+    vector<int> best_fitness;
+    Individual best = bestInd(population);
+    best_fitness.push_back(best.fitness);
+    cout << "Mejor fitness de la poblacion inicial: " << best.fitness << endl; 
+    
+    // Procedemos con crear las nuevas generaciones.
+    for(int i = 0; i < NITERACIONES; i++){ // Generaciones
+        // Creamos un vector para casamiento o cruzamiento.
+        vector<pair<Individual, Individual>> mating_pool;
+        // Procedemos con seleccionar los mejores individuos.
+        // Crearemos el tournament, tenemos ya el tamanio definido.
+        for(int j = 0; j < population.size() / 2; j++){ // Es entre 2 pues, estamos eligiendo un par.
+            mating_pool.push_back(make_pair(tournament_selection(population),
+                                             tournament_selection(population)));
+        }
+        // Hecho esto, tenemos los individuos mas aptos.
+        // Ahora procedemos con generar la nueva poblacion descendiente.
+        vector<Individual> offspring_population;  // La nueva poblacion.
+        for(pair<Individual, Individual> &parents: mating_pool){
+            
+            pair<Individual, Individual> children = crossover_uniform(parents.first, parents.second);
+            // Ahora de los hijos, verificar si uno va a mutar o no.
+
+            // Recordemos que los RAND devuelven enteros, se debe de castear primero.
+            
+            ////// PENDIENTE: CHECAR QUE MUTACION UTILIZAR //////
+            // MUTA EL PRIMER HIJO.
+            if((double)rand() / RAND_MAX < MUTATION_RATE){ // Muta el primero
+                mutacion(children.first); 
+            }
+
+            // MUTA EL SEGUNDO HIJO.
+            if((double)rand() / RAND_MAX < MUTATION_RATE){ // Muta el primero
+                mutacion(children.second);
+            }
+
+            // Ahora los hijos se guardan en la poblacion descendiente.
+            offspring_population.push_back(children.first);
+            offspring_population.push_back(children.second);
+        }
+        // Fin, ya tenemos poblacion descendiente.
+        // Queda el paso de seleccion y evaluacion de sobrevivientes
+        // Primero, evaluamos,que seria calcular el fitness de toda la poblacion descendiente.
+        evaluate_population(offspring_population);
+        
+        // Ahora de esta evaluacion, seleccionaremos aquellos mejores.
+        // Se aplica la Seleccion Elitista (mejores padres, mejores hijos)
+        population = select_survivors(population, offspring_population);
+        // Hecho esto, se obtiene el mejor de toda la poblacion.
+        best = bestInd(population);
+        best_fitness.push_back(best.fitness);
+        if(i % 2 == 0){ // Imprime pares para que no sea tantas impresiones.
+            cout << "Mejor individuo: " << best.fitness << "En la generacion " << i + 1 << endl;
+			imprimeDeck(best);
+            // printChromo(best);
+        }
+        // Y listo :)
+    }
+    // El reporte se hace dentro del best Fitness.
+    
+
+}
+
+// FUNCIONES POKEMON:
 
 int binarySearch(int num, int p, int r, vector<int> &array){
-	if(p <= r){ // Se puede buscar
-		int q = p + (r - p) / 2;
-		//cout << "Indide: " << q << endl;
-		if(num == array[q])return q;
-		else{
-			if(num <= array[q])return binarySearch(num, p, q - 1, array);
-			else return binarySearch(num, q + 1, r, array);
-		}
-	}
-	else return -1; // Se sobrepasa
+    if(p <= r){ // Se puede buscar
+        int q = p + (r - p) / 2;
+        //cout << "Indide: " << q << endl;
+        if(num == array[q])return q;
+        else{
+            if(num <= array[q])return binarySearch(num, p, q - 1, array);
+            else return binarySearch(num, q + 1, r, array);
+        }
+    }
+    else return -1; // Se sobrepasa
 }
 
-int binarySearchAlt(int num, int p, int r, vector<int> &array){
-	if(p <= r){ // Se puede buscar
-		int q = p + (r - p) / 2;
-		//cout << "Indide: " << pool[array[q]].nombre <<" " <<q << endl;
-		if(num == array[q])return q;
-		else{
-			if(num > array[q])return binarySearchAlt(num, p, q - 1, array);
-			else return binarySearchAlt(num, q + 1, r, array);
-		}
-	}
-	else return -1; // Se sobrepasa
-}
-
-//int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia 
-//	sort(mazo.begin(),mazo.end());
-//
-//	int lineasInconclusas = 0;
-//	vector<int> evoluciones;
-//	for(int id : mazo){
-//		if(pool[id].tipo_carta == CARTA_TIPO::POKEMON && pool[id].fase != FASE::BASICO) lineasInconclusas++;
-//
-//		if(pool[id].tipo_carta == CARTA_TIPO::POKEMON && pool[id].fase == FASE::BASICO){
-//			evoluciones = pool[id].sigEvo;
-//			if(!evoluciones.empty()){ // Solo en caso el pokemon cuente con evoluciones.
-//				for(int i = 0; i < evoluciones.size(); i++){ // Recorre evoluciones.
-//					if(!binarySearch(evoluciones[i], 0, mazo.size() - 1, mazo)){ // No se ha encontrado, rompe bucle.
-//						lineasInconclusas++;
-//						break;
-//					}
-//				}
-//				// Bucle termina, evoluciones completas, no hay acción.
-//			}
-//		}
-//	}
-//
-//	return lineasInconclusas;
-//}
-
-int buscaEvo(vector<int>& mazo, int actual){
-	//cout << "-> Estoy buscando a ";
-	//for(int n : pool[actual].sigEvo)
-	//	cout << pool[n].nombre << " ";
-	//cout << endl;
-	//muestraDeck(mazo);
-
-	for(int n : pool[actual].sigEvo){
-		int temp = binarySearchAlt(n,0,mazo.size(),mazo);
-		if(temp != -1) return temp;
-	}
-	return -1;
-}
-
-bool buscaLinea(vector<int>& mazo, int& actual){
-
+void mutacion(Individual& individuo){
+	vector<int> copy = individuo.mazo;
+	vector<int> aux = copy;	// copia del mazo
 	while(1){
-		if(pool[actual].fase_final) return true;
-		int aux = buscaEvo(mazo,actual);
-		//cout << "aux: " << aux << endl;
-		if(aux == -1) return false;
-		actual = aux;
-		mazo.erase(mazo.begin()+aux);
+
+		aux[rand()%CANT_CARTAS_DECK] = rand()%TOTAL_CARTAS;	// se agrega una carta aleatoria del pool a mazo
+
+		if(!aberracion(aux)) break;
+		else aux = copy;	// se restaura el mazo original
 	}
+
+	individuo.mazo = aux;
+}
+
+// busqueda binaria cuando el vector esta de mayor a menor
+int binarySearchAlt(int num, int p, int r, vector<int> &array) {
+    if (p <= r) { // Se puede buscar
+        int q = p + (r - p) / 2;
+        //cout << "Indide: " << pool[array[q]].nombre <<" " <<q << endl;
+        if (num == array[q])return q;
+        else {
+            if (num > array[q])return binarySearchAlt(num, p, q - 1, array);
+            else return binarySearchAlt(num, q + 1, r, array);
+        }
+    } else return -1; // Se sobrepasa
+}
+
+//funcion que busca la cantidad de elementos en el deck
+//devuelve un arreglo con los elementos presentes en el mazo (fuego, agua, electrico, metal, etc)
+vector<int> cantTiposCalcular(vector<int>& mazo){
+    vector<int> tipos;
+    for(int id: mazo){
+        if(!tipos.empty())sort(tipos.begin(), tipos.end());
+	if(pool[id].tipo_carta==CARTA_TIPO::POKEMON && (pool[id].elemento!=ELEMENTO::NORMAL || pool[id].elemento!=ELEMENTO::DRAGON)) {
+            if(binarySearch(pool[id].elemento,0,tipos.size()-1,tipos)==-1)
+				tipos.push_back(pool[id].elemento);
+	}
+    }
+    return tipos;
+}
+
+//calcula la sinergia entre la cartas del mazo
+double calculaSinergia(vector<int> mazo) {
+
+    sort(mazo.begin(), mazo.end());
+
+    int puntosSinergias = 0;
+    for (int id : mazo) {
+        switch (pool[id].tipo_carta) {
+            case (CARTA_TIPO::POKEMON):		// para los pokemon 
+                if (pool[id].sinergia.size()) {
+                    if (pool[id].sinergia[0] > 0) {		//cuando en psinergia se tiene un numero negativo se interpreta como que el numero es un elemento y que este pokemon da un beneficio a todos los de ese elemento
+                        for (int idSinergia : pool[id].sinergia) { // cuando es un numero positivo se interpreta a que son cartas especificas con las que tiene sinergia
+                            if (binarySearch(idSinergia, 0, mazo.size() - 1, mazo) != -1) puntosSinergias++; // si estan esas cartas el maso paga puntos de sinergia
+                        }
+                    } else {
+                        int tipo = -pool[id].sinergia[0];
+                        if (tipo == ELEMENTO::NORMAL) {
+                            puntosSinergias++;
+                        } else {
+                            vector<int> tiposDelDeck = cantTiposCalcular(mazo);	//si el tipo al que este pokemon benefia esta presente en el deck, el maso gana puntos de sinergia
+                            if (binarySearch(tipo, 0, mazo.size() - 1, mazo) != -1) puntosSinergias++;
+                        }
+
+                    }
+                }
+                break;
+            case (CARTA_TIPO::ITEM):	// las cartas de items dan sinergia dependiendo su tipo: por ejemplo las cartas para robar carta dan mas puntos de sinergia que las de soporte.
+                puntosSinergias += pool[id].tipo_entrenador;
+                break;
+            case (CARTA_TIPO::PARTIDARIO):
+                if (pool[id].sinergia.size()) { // los puntos de entrenador solo puede reclamarlos si cumple primero la sinergia 
+                    if (pool[id].sinergia[0] > 0) {
+                        int tempSinergia = 0;
+                        for (int idSinergia : pool[id].sinergia) {
+                            if (binarySearch(idSinergia, 0, mazo.size() - 1, mazo) != -1) tempSinergia++;
+                        }
+                        if (tempSinergia) tempSinergia += pool[id].tipo_entrenador;
+                        puntosSinergias += tempSinergia;
+                    } else {
+                        int tipo = -pool[id].sinergia[0];
+                        if (tipo == ELEMENTO::NORMAL) {
+                            puntosSinergias++;
+                            puntosSinergias += pool[id].tipo_entrenador;
+                        } else {
+                            vector<int> tiposDelDeck = cantTiposCalcular(mazo);
+                            if (binarySearch(tipo, 0, mazo.size() - 1, mazo) != -1) {
+                                puntosSinergias++;
+                                puntosSinergias += pool[id].tipo_entrenador;	//al igual que los items los entrenadores que permiten robar carta dan mas sinergia, despues la de soporte y finalmente la de disrupcion
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return puntosSinergias;
+}
+
+// analizar lineas busca lineas evolutivas incompletas, parciales y completas
+void analizaLineas(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas) {
+    sort(mazo.begin(), mazo.end(), [](int a, int b) {
+        return a > b;
+    });	// se ordena el mazo de mayor a menor
+	//NOTA: un pokemon basico siempre va a tener un menor indice que sus evoluciones
+
+    while (!mazo.empty()) {
+		int actual = mazo.back();
+    	mazo.pop_back();
+        if (pool[actual].tipo_carta == CARTA_TIPO::POKEMON) {	
+            if (pool[actual].fase == FASE::BASICO) {	// si nos encontramos con un basico la linea puede estar completa , incompleta o parcial
+                //cout << "-> Actual: " << pool[actual].nombre << endl;
+                analizoLineaBasico(mazo, lineasIncompletas, lineasParciales, lineasCompletas, actual);
+            } else if (pool[actual].fase == FASE::FASE_1) {	// si nos encontramos con un fase 1 la linea puede estar incompleta o parcial.
+                analizoLineaParcial(mazo, lineasIncompletas, lineasParciales, actual);
+            } else lineasIncompletas++;
+        }
+    }
+	//cout << "->" << lineasIncompletas << lineasParciales << lineasCompletas << endl;
+}
+
+void analizoLineaBasico(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& lineasCompletas, int actual) {
+
+    if (pool[actual].fase_final) {
+        return;
+    }
+	// aqui se evalua si la linea, empezando desde el pokemon basico, está completa, incompleta o parcial en el deck
+    int fase1 = buscaEvo(mazo, actual);		
+    if (fase1 != -1) {
+        actual = mazo[fase1];
+        mazo.erase(mazo.begin() + fase1);
+        if (!pool[actual].fase_final) {
+            int fase2 = buscaEvo(mazo, actual);
+            if (fase2 != -1) {
+                mazo.erase(mazo.begin() + fase2);
+                lineasCompletas++;
+            } else {
+                lineasParciales++;
+            }
+        } else {
+            lineasCompletas++;
+            return;
+        }
+    } else {
+        //cout << "-> No encontre el fase 1 asi que busco el fase 2" << endl;
+        actual = pool[actual].sigEvo[0]; // pasamos a la fase 1 para buscar si la fase 2 esta en el deck
+        //cout << "-> Busco la evo de " << pool[actual].nombre << endl;
+        if (!pool[actual].fase_final) { // si fase 1 es la fase final estamos ante una lineaIncompleta
+            int fase2 = buscaEvo(mazo, actual);
+            if (fase2 != -1) {
+                //cout << "-> Encontre a : " << pool[mazo[fase2]].nombre << endl;
+                mazo.erase(mazo.begin() + fase2);
+                lineasParciales++;
+            } else {
+                //cout << "-> No lo encontre" << endl;
+                lineasIncompletas++;
+            }
+        }
+    }
+}
+
+void analizoLineaParcial(vector<int> mazo, int& lineasIncompletas, int& lineasParciales, int& actual) {
+
+    if (pool[actual].fase_final) {
+        lineasIncompletas++;
+        return;
+    }
+	// aca se verifica si la linea empezando desde el fase 1 esta incompleta o parcial.
+    int fase2 = buscaEvo(mazo, actual);
+    if (fase2 != -1) {
+        mazo.erase(mazo.begin() + fase2);
+        lineasParciales++;
+    } else {
+        lineasIncompletas++;
+    }
 
 }
 
-int lineasInconclusasCalcular(vector<int> mazo){// necesito ordenar una copia 
-	sort(mazo.begin(),mazo.end(),[](int a, int b) {return a > b;});
-	
-	int lineasInconclusas = 0;
-	//muestraDeck(mazo);
-	//cout <<"--------------------------" << endl;
-    int actual = mazo.back();
-	mazo.pop_back();
+//busca una evolucion de una carta en el mazo
+int buscaEvo(vector<int>& mazo, int actual) {
+    //cout << "-> Estoy buscando a ";
+    //for(int n : pool[actual].sigEvo)
+    //	cout << pool[n].nombre << " ";
+    //cout << endl;
+    //muestraDeck(mazo);
 
-	bool no_encontrado = false;
-
-	while(mazo.size()){
-		//cout << "->Actual: " << pool[actual].nombre << endl;
-		if(pool[actual].tipo_carta == CARTA_TIPO::POKEMON){
-			if(pool[actual].fase == FASE::BASICO){ //agregar indices de fosiles 
-				if(pool[actual].fase_final){
-					//cout << "-> Este pokemon no evoluciona" << endl;
-					actual = mazo.back();
-					mazo.pop_back();
-				}else{
-					if(!buscaLinea(mazo,actual)) {
-						//cout << "-> No encontre la linea completa." << endl;
-						actual = mazo.back();
-						mazo.pop_back();
-						lineasInconclusas++;
-					}
-				}
-			}else{
-				//cout << "-> Encontre primero una evolucion" << endl;
-				actual = mazo.back();
-				mazo.pop_back();
-				lineasInconclusas++;
-			}
-		}else{
-			//cout << "->Salto esta carta" << endl;
-			actual = mazo.back();
-			mazo.pop_back();
-		}
-
-		//muestraDeck(mazo);
-		//cout << "L:" << lineasInconclusas << endl;
-		//cout << "-----------------------------------" << endl;
-	}
-	return lineasInconclusas;
+    for (int n : pool[actual].sigEvo) {
+        int temp = binarySearchAlt(n, 0, mazo.size() - 1, mazo);
+        if (temp != -1) return temp;
+    }
+    return -1;
 }
 
-int analizaLineas(vector<int> mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas){
-	sort(mazo.begin(),mazo.end(),[](int a,int b){return a > b;});
-
-	int actual = mazo.back();
-	mazo.pop_back();
-
-	while(mazo.empty()){
-		if(pool[actual].tipo_carta == CARTA_TIPO::POKEMON){
-			if(pool[actual].fase == FASE::BASICO){
-				//cout << "-> Actual: " << pool[actual].nombre << endl;
-				analizoLineaBasico(mazo,lineasIncompletas,lineasParciales,lineasCompletas,actual);
-			}else if(pool[actual].fase == FASE::FASE_1){
-				analizoLineaParcial(mazo,lineasIncompletas,lineasParciales,actual);
-			}else lineasIncompletas++;
-		}
-		actual = mazo.back();
-		mazo.pop_back();
-	}
+// asigna una mano aleatoria de 5 cartas de un deck
+void asignaMano(vector<int>& mazo, vector<int>& mano) {
+    vector<bool> usado(mazo.size(), false);
+    int randInd;
+    for (int n = 0; n < 5; n++) {
+        do {
+            randInd = rand() % mazo.size();
+        } while (usado[randInd]);
+        usado[randInd] = true;
+        mano.push_back(mazo[randInd]);
+    }
 }
 
-void analizoLineaBasico(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales, int& lineasCompletas,int actual){
-	
-	if(pool[actual].fase_final){
-		lineasCompletas++;
-		return;
-	}
+//se evalua cuantas acciones se puede ejecutar con una mano de 5 cartas aleatorias de un deck
+//se pueden poner hasta un maximo de 4 pokemon basicos
+//se puede jugar solo una carta de partidario
+//se pueden jugar todas las cartas de objeto que se tengan
+int evaluaAcciones(vector<int> &mano) {
 
-	int fase1 = buscaEvo(mazo,actual);
-	if(fase1 != -1){
-		actual = mazo[fase1];
-		mazo.erase(mazo.begin()+fase1);
-		if(!pool[actual].fase_final){
-			int fase2 = buscaEvo(mazo,actual);
-			if(fase2 != -1){
-				mazo.erase(mazo.begin()+fase2);
-				lineasCompletas++;
-			}else{
-				lineasParciales++;
-			}
-		}else{
-			lineasCompletas++;
-			return;
-		}
-	}else{
-		//cout << "-> No encontre el fase 1 asi que busco el fase 2" << endl;
-		actual = pool[actual].sigEvo[0];// pasamos a la fase 1 para buscar si la fase 2 esta en el deck
-		//cout << "-> Busco la evo de " << pool[actual].nombre << endl;
-		if(!pool[actual].fase_final){ // si fase 1 es la fase final estamos ante una lineaIncompleta
-			int fase2 = buscaEvo(mazo,actual);
-			if(fase2!= -1){
-				//cout << "-> Encontre a : " << pool[mazo[fase2]].nombre << endl;
-				mazo.erase(mazo.begin()+fase2);
-				lineasParciales++;
-			}else{
-				//cout << "-> No lo encontre" << endl;
-				lineasIncompletas++;
-			}
-		}
-	}
+    int pokes_basicos = 0;
+    int items = 0;
+    int partidarios = 0;
+
+    for (int id : mano) {
+        switch (pool[id].tipo_carta) {
+            case (CARTA_TIPO::POKEMON):
+                if (pool[id].fase == FASE::BASICO) pokes_basicos++;
+                break;
+            case (CARTA_TIPO::ITEM):
+                items++;
+                break;
+            case (CARTA_TIPO::PARTIDARIO):
+                partidarios++;
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (pokes_basicos > 4) pokes_basicos = 4;
+    if (partidarios > 1) partidarios = 1;
+
+    return pokes_basicos + items + partidarios;
 }
 
-void analizoLineaParcial(vector<int>& mazo,int& lineasIncompletas,int& lineasParciales,int& actual){
-
-	if(pool[actual].fase_final){
-		lineasIncompletas++;
-		return;
-	}
-
-	int fase2 = buscaEvo(mazo,actual);
-	if(fase2 != -1){
-		mazo.erase(mazo.begin()+fase2);
-		lineasParciales++;
-	}else{
-		lineasIncompletas++;
-	}
-
-}
-
-double accionesPromedioCalcular(vector<int>& mazo){
-	double accionesTotales = 0;
-	for(int n= 0; n<5; n++){
-		vector<int> mano;
-		asignaMano(mazo,mano);
-		accionesTotales+=evaluaAcciones(mano);
-	}
-	return accionesTotales/5.0;
-}
-
-void asignaMano(vector<int>& mazo,vector<int>& mano){
-	vector<bool> usado(mazo.size(), false);
-	int randInd;
-	for(int n = 0; n<5;n++){
-		do{
-			randInd = rand() % mazo.size();
-		}while(usado[randInd]);
-		usado[randInd] = true;
-		mano.push_back(mazo[randInd]); 
-	}
-}
-
-int evaluaAcciones(vector<int> &mano){
-
-	int pokes_basicos = 0;
-	int items = 0;
-	int partidarios = 0;
-
-	for(int id : mano){
-		switch (pool[id].tipo_carta)
-		{
-		case (CARTA_TIPO::POKEMON):
-			if(pool[id].fase == FASE::BASICO) pokes_basicos++;
-			break;
-		case (CARTA_TIPO::ITEM):
-			items++;
-			break;
-		case (CARTA_TIPO::PARTIDARIO):
-			partidarios++;
-			break;
-		default:
-			break;
-		}
-	}
-
-	if(pokes_basicos>4) pokes_basicos = 4;
-	if(partidarios>1) partidarios = 1;
-
-	return pokes_basicos+items+partidarios;
-}
-
-double calculaSinergia(vector<int> mazo){
-	
-	sort(mazo.begin(),mazo.end());
-
-	int puntosSinergias = 0;
-	for(int id : mazo){
-		switch (pool[id].tipo_carta)
-		{
-		case (CARTA_TIPO::POKEMON):
-			if(pool[id].sinergia.size()){
-				if(pool[id].sinergia[0]>0){
-					for(int idSinergia : pool[id].sinergia){
-						if(binarySearch(idSinergia,0,mazo.size()-1,mazo)!=-1) puntosSinergias++;
-					}
-				}else{
-					int tipo = -pool[id].sinergia[0];
-					if(tipo == ELEMENTO::NORMAL) {
-						puntosSinergias++;
-					}else{
-						vector<int> tiposDelDeck = cantTiposCalcular(mazo);
-						if(binarySearch(tipo,0,mazo.size()-1,mazo)!=-1) puntosSinergias++;
-					}
-					
-				}
-			}
-			break;
-		case (CARTA_TIPO::ITEM):
-			puntosSinergias+=pool[id].tipo_entrenador;
-			break;
-		case (CARTA_TIPO::PARTIDARIO):
-			if(pool[id].sinergia.size()){	// los puntos de entrenador solo puede reclamarlos si cumple primero la sinergia 
-				if(pool[id].sinergia[0]>0){
-					int tempSinergia = 0;
-					for(int idSinergia : pool[id].sinergia){
-						if(binarySearch(idSinergia,0,mazo.size()-1,mazo)!=-1) tempSinergia++;
-					}
-					if(tempSinergia) tempSinergia+=pool[id].tipo_entrenador;
-					puntosSinergias+=tempSinergia;
-				}else{
-					int tipo = -pool[id].sinergia[0];
-					if(tipo == ELEMENTO::NORMAL) {
-						puntosSinergias++;
-						puntosSinergias+=pool[id].tipo_entrenador;
-					}else{
-						vector<int> tiposDelDeck = cantTiposCalcular(mazo);
-						if(binarySearch(tipo,0,mazo.size()-1,mazo)!=-1) {
-							puntosSinergias++;
-							puntosSinergias+=pool[id].tipo_entrenador;
-						}
-					}
-				}
-			}
-			break;
-		default:
-			break;
-		}
-	}
-	return puntosSinergias;
-}
-
-double calculaFitness(vector<int>& mazo){
-	int cantTipos = cantTiposCalcular(mazo).size();
-	//int lineasInconclusas = lineasInconclusasCalcular(mazo);
-	double sinergia = calculaSinergia(mazo);
-	double accionesPromedio = accionesPromedioCalcular(mazo);
-	int lineasIncompletas = 0;
-	int lineasCompletas = 0;
-	int lineasParciales = 0;
-	analizaLineas(mazo,lineasIncompletas,lineasParciales,lineasCompletas);
-
-	cout << "S: " << sinergia << " A: " <<accionesPromedio << " T: " <<cantTipos << endl;
-	cout << "Incompletas: " << lineasIncompletas << " Parciales: " << lineasParciales << " Completas: " << lineasCompletas << endl;
-
-	//return  (sinergia*accionesPromedio)/(cantTipos*(lineasInconclusas != 0 ? lineasInconclusas : 1));
-	return (sinergia+accionesPromedio+(2*lineasCompletas+1))+(lineasParciales+1)/(cantTipos+(lineasIncompletas+1));
+//a partir de 5 manos de 5 cartas, halla el promedio de acciones que se pueden jugar
+double accionesPromedioCalcular(vector<int>& mazo) {
+    double accionesTotales = 0;
+    for (int n = 0; n < 5; n++) {
+        vector<int> mano;
+        asignaMano(mazo, mano);
+        accionesTotales += evaluaAcciones(mano);
+    }
+    return accionesTotales / 5.0;
 }
